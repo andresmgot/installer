@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -24,7 +25,9 @@ import (
 	"github.com/ksonnet/kubecfg/pkg/kubecfg"
 	"github.com/kubeapps/installer/pkg/gke"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -103,7 +106,22 @@ List of components that kubeapps up installs:
 			c.SkipGc = false
 		}
 
-		return c.Run(objs, wd)
+		err = c.Run(objs, wd)
+		if err != nil {
+			return err
+		}
+
+		// Generate mongodb password
+		// TODO: Do not assume keys and IDs for the secret
+		cfg, err := buildOutOfClusterConfig()
+		if err != nil {
+			return fmt.Errorf("Can not get kubernetes config: %v", err)
+		}
+		cli, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			return fmt.Errorf("Can not get kubernetes client: %v", err)
+		}
+		return generateMongoDBSecret(cli, objs)
 	},
 }
 
@@ -122,4 +140,22 @@ func isGKE(disco discovery.DiscoveryInterface) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func generateMongoDBSecret(cli kubernetes.Interface, objs []*unstructured.Unstructured) error {
+	var mongoNS string
+	for _, obj := range objs {
+		if obj.GetKind() == "Deployment" && obj.GetName() == "mongodb" {
+			mongoNS = obj.GetNamespace()
+			break
+		}
+	}
+	if mongoNS == "" {
+		return fmt.Errorf("Unable to find the namespace of the MongoDB database")
+	}
+	err := populateSecretWithPasswords(cli, mongoNS, "mongodb", []string{"mongodb-password", "mongodb-root-password"})
+	if err != nil {
+		return err
+	}
+	return nil
 }
