@@ -36,5 +36,5 @@ k8s_wait_for_pod_ready() {
 }
 
 k8s_wait_for_pod_completed() {
-    k8s_wait_for_pod Completed "${@}"
+    k8s_wait_for_pod Completed -a "${@}"
 }

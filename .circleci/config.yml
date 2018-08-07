@@ -161,6 +161,7 @@ jobs:
           if [ -a $GOOGLE_APPLICATION_CREDENTIALS ]; then
             gcloud -q auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS;
           fi
+      # A GKE cluster name cannot contain non-alphanumeric characters (nor uppercase letters)
       - run: echo "export ESCAPED_GKE_CLUSTER=$(echo ${GKE_CLUSTER}-${CIRCLE_BRANCH:-$CIRCLE_TAG}-ci | sed 's/[^a-z0-9-]//g')" >> $BASH_ENV
       - run: ./script/start-gke-env.sh $ESCAPED_GKE_CLUSTER $GKE_ZONE $GKE_VERSION $GKE_ADMIN > /dev/null
       # Install helm
@@ -170,3 +171,7 @@ jobs:
           sudo mv linux-amd64/helm /usr/local/bin/
           helm init
       - run: ./script/e2e-test.sh
+      - run:
+          name: Cleanup GKE Cluster
+          command: gcloud cluster delete --async --zone $GKE_ZONE $ESCAPED_GKE_CLUSTER
+          when: always
