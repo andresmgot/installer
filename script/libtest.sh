@@ -15,32 +15,26 @@
 export TEST_MAX_WAIT_SEC=300
 
 ## k8s specific Helper functions
-k8s_wait_for_pod_ready() {
-    echo "Waiting for pod '${@}' to be ready ... "
+k8s_wait_for_pod() {
+    condition=${1:?}
+    echo "Waiting for pod '${@:2}' to be ${condition} ... "
     local -i cnt=${TEST_MAX_WAIT_SEC:?}
 
     # Retries just in case it is not stable
     local -i successCount=0
     while [ "$successCount" -lt "3" ]; do
-        if kubectl get pod "${@}" | grep -q Running; then
+        if kubectl get pod "${@:2}" | grep -q $condition; then
             ((successCount=successCount+1))
         fi
         ((cnt=cnt-1)) || return 1
         sleep 1
     done
+
+}
+k8s_wait_for_pod_ready() {
+    k8s_wait_for_pod Running "${@}"
 }
 
 k8s_wait_for_pod_completed() {
-    echo "Waiting for pod '${@}' to be completed ... "
-    local -i cnt=${TEST_MAX_WAIT_SEC:?}
-
-    # Retries just in case it is not stable
-    local -i successCount=0
-    while [ "$successCount" -lt "3" ]; do
-        if kubectl get pod -a "${@}" | grep -q Completed; then
-            ((successCount=successCount+1))
-        fi
-        ((cnt=cnt-1)) || return 1
-        sleep 1
-    done
+    k8s_wait_for_pod Completed "${@}"
 }

@@ -169,4 +169,4 @@ jobs:
           tar zxf helm-$HELM_VERSION-linux-amd64.tar.gz
           sudo mv linux-amd64/helm /usr/local/bin/
           helm init
-      - run: ./script/e2e.sh
+      - run: ./script/e2e-test.sh
