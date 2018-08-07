@@ -56,13 +56,13 @@ workflows:
       # - build_tiller_proxy:
       #     requires:
       #       - test_and_build_go
-      - GKE:
-          requires:
-            - build_chartrepo
-            - build_chartsvc
-            - build_chart_apprepository
-            - build_dashboard
-            - build_tiller_proxy
+      - GKE
+          # requires:
+          #   - build_chartrepo
+          #   - build_chartsvc
+          #   - build_chart_apprepository
+          #   - build_dashboard
+          #   - build_tiller_proxy
       # - release:
       #     requires:
       #       - GKE
