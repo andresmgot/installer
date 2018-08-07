@@ -136,7 +136,9 @@ jobs:
           fi
   GKE:
     docker:
-      - image: circleci/golang:1.9 
+      - image: circleci/golang:1.9
+    environment:
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1
     steps:
       - run: |
           # In case of GKE we will only want to build if it is
