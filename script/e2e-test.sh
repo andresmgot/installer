@@ -26,6 +26,7 @@ kubectl get clusterrolebinding kube-dns-admin >& /dev/null || \
 
 # Wait for Tiller
 k8s_wait_for_pod_ready -n kube-system -l app=helm,name=tiller
+wait_for_tiller
 
 # Install Kubeapps
 # TODO: Use just built images
