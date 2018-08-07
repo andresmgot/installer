@@ -10,10 +10,18 @@ if ! gcloud container clusters list; then
     exit 1
 fi
 
-if gcloud container clusters list | grep -q $CLUSTER; then
-    echo "GKE cluster already exits. Deleting resources"
-    # Cluster already exists, make sure it is clean
-    gcloud container clusters delete $CLUSTER --zone $ZONE
+if gcloud container clusters list --filter="${CLUSTER}"; then
+    if gcloud container clusters list --filter="${CLUSTER}" | grep "STOPPING"; then
+        cnt=300
+        while gcloud container clusters list | grep $CLUSTER; do
+            ((cnt=cnt-1)) || (echo "Waited 5m but cluster is still being deleted" && exit 1)
+            sleep 1
+        done
+    else
+        echo "GKE cluster already exits. Deleting resources"
+        # Cluster already exists, make sure it is clean
+        gcloud container clusters delete $CLUSTER --zone $ZONE
+    fi
 fi
 
 echo "Creating cluster $CLUSTER in $ZONE (v$VERSION)"

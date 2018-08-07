@@ -38,3 +38,13 @@ k8s_wait_for_pod_ready() {
 k8s_wait_for_pod_completed() {
     k8s_wait_for_pod Completed -a "${@}"
 }
+
+## helm specific helper functions
+k8s_wait_for_tiller() {
+    echo "Waiting for Tiller to be ready ... "
+    local -i cnt=${TEST_MAX_WAIT_SEC:?}
+    until helm version "${@}"; do
+        ((cnt=cnt-1)) || return 1
+        sleep 1
+    done
+}
