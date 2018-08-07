@@ -21,7 +21,7 @@ gcloud container clusters create --cluster-version=$VERSION --zone $ZONE $CLUSTE
 # Wait for the cluster to respond
 cnt=20
 until kubectl get pods; do
-    ((cnt=cnt-1)) || (echo "Waited 20 seconds but cluster is not reachable" && return 1)
+    ((cnt=cnt-1)) || (echo "Waited 20 seconds but cluster is not reachable" && exit 1)
     sleep 1
 done
 
