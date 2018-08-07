@@ -1,6 +1,12 @@
 version: 2
 
 ## Definitions
+install_gcloud_sdk: &install_gcloud_sdk
+  run: |
+    if [ ! -d ${HOME}/google-cloud-sdk/bin ]; then
+      rm -rf $HOME/google-cloud-sdk;
+      curl https://sdk.cloud.google.com | bash;
+    fi  
 exports: &exports
   run: |
     # It is not possible to resolve env vars in the environment section:
@@ -50,13 +56,16 @@ workflows:
       - build_tiller_proxy:
           requires:
             - test_and_build_go
-      - release:
+      - GKE:
           requires:
             - build_chartrepo
             - build_chartsvc
             - build_chart_apprepository
             - build_dashboard
             - build_tiller_proxy
+      - release:
+          requires:
+            - GKE
 
 jobs:
   test_and_build_go:
@@ -75,12 +84,7 @@ jobs:
             wget -O kubecfg https://github.com/ksonnet/kubecfg/releases/download/v0.7.2/kubecfg-$(go env GOOS)-$(go env GOARCH)
             install -m 755 kubecfg $GOPATH/bin/kubecfg
           fi
-      # Install google-cloud-sdk
-      - run: |
-          if [ ! -d ${HOME}/google-cloud-sdk/bin ]; then
-            rm -rf $HOME/google-cloud-sdk;
-            curl https://sdk.cloud.google.com | bash;
-          fi
+      - <<: *install_gcloud_sdk
       - run: make test
       - run: BINARY=bin/kubeapps-linux-amd64 make
       - run: BINARY=bin/kubeapps-darwin-amd64 GOOS=darwin GOARCH=amd64 make
@@ -130,3 +134,29 @@ jobs:
           if [[ -n "$CIRCLE_TAG" ]]; then
             REPO_DOMAIN=kubeapps REPO_NAME=kubeapps ./script/create_release.sh ${CIRCLE_TAG} /tmp/kubeapps/bin
           fi
+    GKE:
+    <<: *defaults
+    docker:
+      - image: circleci/golang:1.9 
+    steps:
+      - run: |
+          # In case of GKE we will only want to build if it is
+          # a build of a branch in the kubeapps repository
+          if [[ -z "$GKE_ADMIN" || -n "$CIRCLE_PULL_REQUESTS" ]]; then
+            circleci step halt
+          fi
+      - checkout
+      - <<: *exports
+      - <<: *install_gcloud_sdk
+      - setup_remote_docker
+      - run: |
+        gcloud -q config set project $GKE_PROJECT
+        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/client_secrets.json
+        echo $GCLOUD_KEY > $GOOGLE_APPLICATION_CREDENTIALS
+        if [ -a $GOOGLE_APPLICATION_CREDENTIALS ]; then
+          gcloud -q auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS;
+        fi
+      - run: ./script/enable-gcloud.sh $(pwd) > /dev/null
+      - run: echo "export ESCAPED_GKE_CLUSTER=$(echo ${GKE_CLUSTER}-ci-${CIRCLE_BRANCH:-$CIRCLE_TAG} | sed 's/[^a-z0-9-]//g')" >> $BASH_ENV
+      - run: ./script/start-gke-env.sh $ESCAPED_GKE_CLUSTER $GKE_ZONE $GKE_VERSION $GKE_ADMIN > /dev/null
+
