@@ -78,34 +78,41 @@ workflows:
   version: 2
   kubeapps:
     jobs:
-      # - test_and_build_go
-      # - test_nodejs
-      # - build_chartrepo:
-      #     requires:
-      #       - test_and_build_go
-      # - build_chartsvc:
-      #     requires:
-      #       - test_and_build_go
-      # - build_chart_apprepository:
-      #     requires:
-      #       - test_and_build_go
-      # - build_dashboard:
-      #     requires:
-      #       - test_nodejs
-      # - build_tiller_proxy:
-      #     requires:
-      #       - test_and_build_go
-      - GKE_1_9
-      - GKE_1_10
-          # requires:
-          #   - build_chartrepo
-          #   - build_chartsvc
-          #   - build_chart_apprepository
-          #   - build_dashboard
-          #   - build_tiller_proxy
-      # - release:
-      #     requires:
-      #       - GKE
+      - test_and_build_go
+      - test_nodejs
+      - build_chartrepo:
+          requires:
+            - test_and_build_go
+      - build_chartsvc:
+          requires:
+            - test_and_build_go
+      - build_chart_apprepository:
+          requires:
+            - test_and_build_go
+      - build_dashboard:
+          requires:
+            - test_nodejs
+      - build_tiller_proxy:
+          requires:
+            - test_and_build_go
+      - GKE_1_9:
+          requires:
+            - build_chartrepo
+            - build_chartsvc
+            - build_chart_apprepository
+            - build_dashboard
+            - build_tiller_proxy
+      - GKE_1_10:
+          requires:
+            - build_chartrepo
+            - build_chartsvc
+            - build_chart_apprepository
+            - build_dashboard
+            - build_tiller_proxy
+      - release:
+          requires:
+            - GKE_1_9
+            - GKE_1_10
 
 jobs:
   test_and_build_go:

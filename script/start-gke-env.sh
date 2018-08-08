@@ -14,8 +14,8 @@ fi
 VERSION=$(gcloud container get-server-config --zone $GKE_ZONE --format='yaml(validMasterVersions)' 2> /dev/null | grep $BRANCH | awk '{print $2}' | head -n 1)
 
 # Check if the cluster is already running
-if gcloud container clusters list --filter="${CLUSTER}" 2> /dev/null; then
-    if gcloud container clusters list --filter="${CLUSTER}" | grep "STOPPING"; then
+if [[ $(gcloud container clusters list --filter="name:${CLUSTER}") ]]; then
+    if gcloud container clusters list --filter="name:${CLUSTER}" | grep "STOPPING"; then
         cnt=300
         while gcloud container clusters list | grep $CLUSTER; do
             ((cnt=cnt-1)) || (echo "Waited 5m but cluster is still being deleted" && exit 1)
