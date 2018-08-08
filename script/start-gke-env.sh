@@ -10,7 +10,7 @@ if ! gcloud container clusters list; then
     exit 1
 fi
 
-if gcloud container clusters list --filter="${CLUSTER}"; then
+if gcloud container clusters list --filter="${CLUSTER}" 2> /dev/null; then
     if gcloud container clusters list --filter="${CLUSTER}" | grep "STOPPING"; then
         cnt=300
         while gcloud container clusters list | grep $CLUSTER; do
