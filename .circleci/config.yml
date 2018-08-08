@@ -25,7 +25,7 @@ build_image: &build_image
     - run: |
         if [[ -z "$CIRCLE_PULL_REQUEST" ]]; then
           docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
-          if [[ -n "$CIRCLE_TAG" ]]; then
+          if [[ -n "$CIRCLE_TAG" ]]; then 
             docker push $IMAGE:$VERSION
           fi
           if [[ "$CIRCLE_BRANCH" == "master"  ]]; then
@@ -33,6 +33,47 @@ build_image: &build_image
             docker push $IMAGE:latest
           fi
         fi
+gke_test: &gke_test
+  docker:
+    - image: circleci/golang:1.9
+  environment:
+    CLOUDSDK_CORE_DISABLE_PROMPTS: 1
+    HELM_VERSION: v2.9.1
+  steps:
+    - run: |
+        # In case of GKE we will only want to build if it is
+        # a build of a branch in the kubeapps repository
+        if [[ -z "$GKE_ADMIN" || -n "$CIRCLE_PULL_REQUESTS" ]]; then
+          circleci step halt
+        fi
+    - checkout
+    - <<: *exports
+    - <<: *install_gcloud_sdk
+    # Install kubectl
+    - run: gcloud components install kubectl
+    - setup_remote_docker
+    - run: |
+        gcloud -q config set project $GKE_PROJECT
+        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/client_secrets.json
+        echo $GCLOUD_KEY > $GOOGLE_APPLICATION_CREDENTIALS
+        if [ -a $GOOGLE_APPLICATION_CREDENTIALS ]; then
+          gcloud -q auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS;
+        fi
+    # A GKE cluster name cannot contain non-alphanumeric characters (nor uppercase letters)
+    - run: echo "export ESCAPED_GKE_CLUSTER=$(echo ${GKE_CLUSTER}-${CIRCLE_BRANCH:-$CIRCLE_TAG}-${GKE_BRANCH}-ci | sed 's/[^a-z0-9-]//g')" >> $BASH_ENV
+    - run: ./script/start-gke-env.sh $ESCAPED_GKE_CLUSTER $GKE_ZONE $GKE_BRANCH $GKE_ADMIN > /dev/null
+    # Install helm
+    - run: |
+        wget https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VERSION-linux-amd64.tar.gz
+        tar zxf helm-$HELM_VERSION-linux-amd64.tar.gz
+        sudo mv linux-amd64/helm /usr/local/bin/
+        helm init
+    - run: ./script/e2e-test.sh
+    - run:
+        name: Cleanup GKE Cluster
+        command: gcloud container clusters delete --async --zone $GKE_ZONE $ESCAPED_GKE_CLUSTER
+        when: always
+
 ###
 
 workflows:
@@ -56,7 +97,8 @@ workflows:
       # - build_tiller_proxy:
       #     requires:
       #       - test_and_build_go
-      - GKE
+      - GKE_1_9
+      - GKE_1_10
           # requires:
           #   - build_chartrepo
           #   - build_chartsvc
@@ -134,44 +176,11 @@ jobs:
           if [[ -n "$CIRCLE_TAG" ]]; then
             REPO_DOMAIN=kubeapps REPO_NAME=kubeapps ./script/create_release.sh ${CIRCLE_TAG} /tmp/kubeapps/bin
           fi
-  GKE:
-    docker:
-      - image: circleci/golang:1.9
-    environment:
-      CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-      GKE_VERSION: 1.9.7-gke.3
-      HELM_VERSION: v2.9.1
-    steps:
-      - run: |
-          # In case of GKE we will only want to build if it is
-          # a build of a branch in the kubeapps repository
-          if [[ -z "$GKE_ADMIN" || -n "$CIRCLE_PULL_REQUESTS" ]]; then
-            circleci step halt
-          fi
-      - checkout
-      - <<: *exports
-      - <<: *install_gcloud_sdk
-      # Install kubectl
-      - run: gcloud components install kubectl
-      - setup_remote_docker
-      - run: |
-          gcloud -q config set project $GKE_PROJECT
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/client_secrets.json
-          echo $GCLOUD_KEY > $GOOGLE_APPLICATION_CREDENTIALS
-          if [ -a $GOOGLE_APPLICATION_CREDENTIALS ]; then
-            gcloud -q auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS;
-          fi
-      # A GKE cluster name cannot contain non-alphanumeric characters (nor uppercase letters)
-      - run: echo "export ESCAPED_GKE_CLUSTER=$(echo ${GKE_CLUSTER}-${CIRCLE_BRANCH:-$CIRCLE_TAG}-ci | sed 's/[^a-z0-9-]//g')" >> $BASH_ENV
-      - run: ./script/start-gke-env.sh $ESCAPED_GKE_CLUSTER $GKE_ZONE $GKE_VERSION $GKE_ADMIN > /dev/null
-      # Install helm
-      - run: |
-          wget https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VERSION-linux-amd64.tar.gz
-          tar zxf helm-$HELM_VERSION-linux-amd64.tar.gz
-          sudo mv linux-amd64/helm /usr/local/bin/
-          helm init
-      - run: ./script/e2e-test.sh
-      - run:
-          name: Cleanup GKE Cluster
-          command: gcloud container clusters delete --async --zone $GKE_ZONE $ESCAPED_GKE_CLUSTER
-          when: always
+  GKE_1_9:
+    <<: *gke_test
+    enviroment:
+      GKE_BRANCH: 1.9
+  GKE_1_10:
+    <<: *gke_test
+    enviroment:
+      GKE_BRANCH: 1.10

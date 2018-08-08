@@ -2,7 +2,7 @@
 
 CLUSTER=${1:?}
 ZONE=${2:?}
-VERSION=${3:?}
+BRANCH=${3:?}
 ADMIN=${4:?}
 
 if ! gcloud container clusters list; then
@@ -10,6 +10,10 @@ if ! gcloud container clusters list; then
     exit 1
 fi
 
+# Resolve latest version from a branch
+VERSION=$(gcloud container get-server-config --zone $GKE_ZONE --format='yaml(validMasterVersions)' 2> /dev/null | grep $BRANCH | awk '{print $2}' | head -n 1)
+
+# Check if the cluster is already running
 if gcloud container clusters list --filter="${CLUSTER}" 2> /dev/null; then
     if gcloud container clusters list --filter="${CLUSTER}" | grep "STOPPING"; then
         cnt=300
@@ -18,8 +22,7 @@ if gcloud container clusters list --filter="${CLUSTER}" 2> /dev/null; then
             sleep 1
         done
     else
-        echo "GKE cluster already exits. Deleting resources"
-        # Cluster already exists, make sure it is clean
+        echo "GKE cluster already exits. Deleting it"
         gcloud container clusters delete $CLUSTER --zone $ZONE
     fi
 fi
