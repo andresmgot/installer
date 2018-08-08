@@ -177,10 +177,10 @@ jobs:
             REPO_DOMAIN=kubeapps REPO_NAME=kubeapps ./script/create_release.sh ${CIRCLE_TAG} /tmp/kubeapps/bin
           fi
   GKE_1_9:
-    <<: *gke_test
     enviroment:
       GKE_BRANCH: 1.9
-  GKE_1_10:
     <<: *gke_test
+  GKE_1_10:
     enviroment:
       GKE_BRANCH: 1.10
+    <<: *gke_test
