@@ -179,8 +179,8 @@ jobs:
   GKE_1_9:
     <<: *gke_test
     environment:
-      - GKE_BRANCH=1.9
+      GKE_BRANCH: 1.9
   GKE_1_10:
     <<: *gke_test
     environment:
-      - GKE_BRANCH=1.10
+      GKE_BRANCH: 1.10
