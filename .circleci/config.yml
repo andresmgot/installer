@@ -13,6 +13,7 @@ exports: &exports
     # https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
     echo "export VERSION=${CIRCLE_TAG:-build-$CIRCLE_WORKFLOW_ID}" >> $BASH_ENV
     echo "export PATH=$PATH:${HOME}/google-cloud-sdk/bin" >> $BASH_ENV
+    echo "export CLOUDSDK_CORE_DISABLE_PROMPTS=1" >> $BASH_ENV
 build_image: &build_image
   machine: true
   working_directory: /home/circleci/.go_workspace/src/github.com/kubeapps/kubeapps
@@ -36,9 +37,6 @@ build_image: &build_image
 gke_test: &gke_test
   docker:
     - image: circleci/golang:1.9
-  environment:
-    CLOUDSDK_CORE_DISABLE_PROMPTS: 1
-    HELM_VERSION: v2.9.1
   steps:
     - run: |
         # In case of GKE we will only want to build if it is
@@ -114,7 +112,6 @@ jobs:
     working_directory: /go/src/github.com/kubeapps/kubeapps
     environment:
       CGO_ENABLED: "0"
-      CLOUDSDK_CORE_DISABLE_PROMPTS: 1
     docker:
       - image: circleci/golang:1.9 
     steps:
@@ -179,8 +176,10 @@ jobs:
   GKE_1_9:
     <<: *gke_test
     environment:
+      HELM_VERSION: v2.9.1
       GKE_BRANCH: 1.9
   GKE_1_10:
     <<: *gke_test
     environment:
+      HELM_VERSION: v2.9.1
       GKE_BRANCH: 1.10
