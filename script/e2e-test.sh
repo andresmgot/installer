@@ -39,10 +39,10 @@ helm install --name kubeapps-ci --namespace kubeapps $ROOT_DIR/chart/kubeapps \
   --set tillerProxy.image.tag=$DEV_TAG
 
 # Ensure that we are testing the correct image
-k8s_ensure_image kubeapps kubeapps-apprepository-controller $DEV_TAG
-k8s_ensure_image kubeapps kubeapps-chartsvc $DEV_TAG
-k8s_ensure_image kubeapps kubeapps-dashboard $DEV_TAG
-k8s_ensure_image kubeapps kubeapps-tiller-proxy $DEV_TAG
+k8s_ensure_image kubeapps kubeapps-ci-apprepository-controller $DEV_TAG
+k8s_ensure_image kubeapps kubeapps-ci-chartsvc $DEV_TAG
+k8s_ensure_image kubeapps kubeapps-ci-dashboard $DEV_TAG
+k8s_ensure_image kubeapps kubeapps-ci-tiller-proxy $DEV_TAG
 
 # Wait for Kubeapps Pods
 k8s_wait_for_pod_ready kubeapps app=kubeapps-ci

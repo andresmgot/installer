@@ -58,7 +58,7 @@ k8s_ensure_image() {
 wait_for_tiller() {
     echo "Waiting for Tiller to be ready ... "
     local -i cnt=${TEST_MAX_WAIT_SEC:?}
-    until helm version "${@}"; do
+    until helm version --tiller-connection-timeout 5 "${@}"; do
         ((cnt=cnt-1)) || return 1
         sleep 1
     done
