@@ -223,11 +223,11 @@ jobs:
     machine: true
     steps:
       - run: |
-        if [[ -z "$CIRCLE_PULL_REQUEST" && -n "$DOCKER_USERNAME" && -n "$DOCKER_PASSWORD" ]]; then
-          docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
-          for IMAGE in kubeapps/chart-repo kubeapps/chartsvc kubeapps/apprepository-controller kubeapps/dashboard kubeapps/tiller-proxy
-            docker pull $IMAGE:$DEV_TAG
-            docker tag $IMAGE:$DEV_TAG $IMAGE:$PROD_TAG
-            docker push $IMAGE:$PROD_TAG
-          done
-        fi
+          if [[ -z "$CIRCLE_PULL_REQUEST" && -n "$DOCKER_USERNAME" && -n "$DOCKER_PASSWORD" ]]; then
+            docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
+            for IMAGE in kubeapps/chart-repo kubeapps/chartsvc kubeapps/apprepository-controller kubeapps/dashboard kubeapps/tiller-proxy
+              docker pull $IMAGE:$DEV_TAG
+              docker tag $IMAGE:$DEV_TAG $IMAGE:$PROD_TAG
+              docker push $IMAGE:$PROD_TAG
+            done
+          fi
