@@ -17,6 +17,7 @@
 set -e
 
 ROOT_DIR=`cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null && pwd`
+DEV_TAG=${1:?}
 
 source $ROOT_DIR/script/libtest.sh
 
@@ -29,9 +30,13 @@ k8s_wait_for_pod_ready kube-system app=helm,name=tiller
 wait_for_tiller
 
 # Install Kubeapps
-# TODO: Use just built images
 helm dep up $ROOT_DIR/chart/kubeapps/
-helm install --name kubeapps-ci --namespace kubeapps $ROOT_DIR/chart/kubeapps
+helm install --name kubeapps-ci --namespace kubeapps $ROOT_DIR/chart/kubeapps \
+  --set apprepository.image.tag=$DEV_TAG \
+  --set apprepository.syncImage.tag=$DEV_TAG \
+  --set chartsvc.image.tag=$DEV_TAG \
+  --set dashboard.image.tag=$DEV_TAG \
+  --set tillerProxy.image.tag=$DEV_TAG
 
 # Wait for Kubeapps Pods
 k8s_wait_for_pod_ready kubeapps app=kubeapps-ci
