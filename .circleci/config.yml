@@ -50,7 +50,8 @@ workflows:
           requires:
             - test_go
       - GKE_1_9:
-          <<: *build_on_master
+          # <<: *build_on_master
+          <<: *build_always
           requires:
             - build_chartrepo
             - build_chartsvc
@@ -58,20 +59,22 @@ workflows:
             - build_dashboard
             - build_tiller_proxy
       - GKE_1_10:
-          <<: *build_on_master
+          # <<: *build_on_master
+          <<: *build_always
           requires:
             - build_chartrepo
             - build_chartsvc
             - build_chart_apprepository
             - build_dashboard
             - build_tiller_proxy
-      - sync_chart:
-          <<: *build_on_master
-          requires:
-            - GKE_1_9
-            - GKE_1_10
+      # - sync_chart:
+      #     <<: *build_on_master
+      #     requires:
+      #       - GKE_1_9
+      #       - GKE_1_10
       - push_images:
-          <<: *build_on_master
+          # <<: *build_on_master
+          <<: *build_always
           requires:
             - GKE_1_9
             - GKE_1_10
