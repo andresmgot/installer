@@ -97,7 +97,7 @@ exports: &exports
   run: |
     # It is not possible to resolve env vars in the environment section:
     # https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
-    echo "export DEV_TAG=build-$(git rev-parse HEAD)" >> $BASH_ENV
+    echo "export DEV_TAG=build-${CIRCLE_SHA1}" >> $BASH_ENV
     echo "export PROD_TAG=${CIRCLE_TAG:-latest}" >> $BASH_ENV
 build_image: &build_image
   machine: true
@@ -225,10 +225,11 @@ jobs:
   push_images:
     machine: true
     steps:
+      - <<: *exports
       - run: |
           if [[ -z "$CIRCLE_PULL_REQUEST" && -n "$DOCKER_USERNAME" && -n "$DOCKER_PASSWORD" ]]; then
             docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
-            for IMAGE in kubeapps/chart-repo kubeapps/chartsvc kubeapps/apprepository-controller kubeapps/dashboard kubeapps/tiller-proxy
+            for IMAGE in kubeapps/chart-repo kubeapps/chartsvc kubeapps/apprepository-controller kubeapps/dashboard kubeapps/tiller-proxy; do
               docker pull $IMAGE:$DEV_TAG
               docker tag $IMAGE:$DEV_TAG $IMAGE:$PROD_TAG
               docker push $IMAGE:$PROD_TAG
